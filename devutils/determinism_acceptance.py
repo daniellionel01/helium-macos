@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -23,11 +24,21 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "manifests",
-        nargs="+",
+        nargs="*",
         type=Path,
         help=(
             "Manifest paths (JSONL). First path is baseline unless --baseline-index is set."
         ),
+    )
+    parser.add_argument(
+        "--manifest-dir",
+        type=Path,
+        help="Directory containing run manifests",
+    )
+    parser.add_argument(
+        "--manifest-pattern",
+        default="*.jsonl",
+        help="Glob pattern for --manifest-dir (default: *.jsonl)",
     )
     parser.add_argument(
         "--baseline-index",
@@ -80,25 +91,59 @@ def _aggregate(reports: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _natural_key(path: Path) -> List[Any]:
+    parts = re.split(r"(\d+)", path.name)
+    key: List[Any] = []
+    for part in parts:
+        if part.isdigit():
+            key.append(int(part))
+        else:
+            key.append(part.lower())
+    return key
+
+
 def main() -> int:
     parser = _build_parser()
     args = parser.parse_args()
 
-    if len(args.manifests) < 2:
-        print("error: provide at least 2 manifest paths", file=sys.stderr)
-        return 2
+    manifest_paths = list(args.manifests)
+    if args.manifest_dir:
+        if not args.manifest_dir.is_dir():
+            print(f"error: manifest dir does not exist: {args.manifest_dir}", file=sys.stderr)
+            return 2
+        matched = sorted(
+            args.manifest_dir.glob(args.manifest_pattern),
+            key=_natural_key,
+        )
+        manifest_paths.extend(matched)
 
-    if args.baseline_index < 0 or args.baseline_index >= len(args.manifests):
+    seen = set()
+    deduped_paths: List[Path] = []
+    for path in manifest_paths:
+        normalized = str(path.resolve())
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped_paths.append(path)
+
+    if len(deduped_paths) < 2:
         print(
-            f"error: baseline index {args.baseline_index} out of range "
-            f"for {len(args.manifests)} manifests",
+            "error: provide at least 2 manifest paths (directly or via --manifest-dir)",
             file=sys.stderr,
         )
         return 2
 
-    baseline_path = args.manifests[args.baseline_index]
+    if args.baseline_index < 0 or args.baseline_index >= len(deduped_paths):
+        print(
+            f"error: baseline index {args.baseline_index} out of range "
+            f"for {len(deduped_paths)} manifests",
+            file=sys.stderr,
+        )
+        return 2
+
+    baseline_path = deduped_paths[args.baseline_index]
     candidate_paths = [
-        path for index, path in enumerate(args.manifests) if index != args.baseline_index
+        path for index, path in enumerate(deduped_paths) if index != args.baseline_index
     ]
 
     try:

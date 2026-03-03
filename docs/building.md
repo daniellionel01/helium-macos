@@ -131,6 +131,15 @@ he determinism-acceptance run1.jsonl run2.jsonl run3.jsonl run4.jsonl run5.jsonl
   --require-identical-step-set
 ```
 
+If your manifests are in one directory, you can load them automatically:
+
+```sh
+he determinism-acceptance --manifest-dir path/to/manifests \
+  --manifest-pattern "run*.jsonl" \
+  --min-hash-match-rate 99.9 \
+  --require-identical-step-set
+```
+
 ### Creating a new patch
 
 1. Go to the build dir:
