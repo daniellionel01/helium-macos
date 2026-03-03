@@ -253,6 +253,14 @@ ___helium_lint() {
     ___helium_tidy;
 }
 
+___helium_determinism_report() {
+    python3 "$_root_dir/devutils/determinism_report.py" "$@"
+}
+
+___helium_determinism_acceptance() {
+    python3 "$_root_dir/devutils/determinism_acceptance.py" "$@"
+}
+
 __helium_menu() {
     set -e
     case $1 in
@@ -274,6 +282,8 @@ __helium_menu() {
         format) ___helium_format;;
         tidy) ___helium_tidy;;
         lint) ___helium_lint;;
+        determinism-report) shift; ___helium_determinism_report "$@";;
+        determinism-acceptance) shift; ___helium_determinism_acceptance "$@";;
 
         build) ___helium_build;;
         run) ___helium_run;;
@@ -306,6 +316,8 @@ __helium_menu() {
             echo "\tformat - formats the topmost patch according to Chromium coding style" >&2
             echo "\ttidy - runs clang-tidy on the topmost patch" >&2
             echo "\tlint - he format + he tidy" >&2
+            echo "\tdeterminism-report - compare deterministic session manifests" >&2
+            echo "\tdeterminism-acceptance - evaluate repeated run manifests" >&2
 
             echo "\n" >&2
             echo "\tbuild - builds a development binary" >&2

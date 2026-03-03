@@ -4,6 +4,7 @@
 - [Official (non-development) build](#official-non-development-build)
 - [Development build and environment](#development-build-and-environment)
     - [Basics](#basics)
+    - [Determinism report tool](#determinism-report-tool)
     - [Creating a new patch](#creating-a-new-patch)
     - [Updating for a new Chromium release](#updating-for-a-new-chromium-release)
 
@@ -100,6 +101,36 @@ brew install quilt
 
 5. Done! You have your own home-grown Helium ready for tinkering.
 
+### Determinism report tool
+
+When validating deterministic recording runs, compare `session.jsonl` manifests with:
+
+```sh
+source dev.sh
+he determinism-report path/to/baseline.session.jsonl path/to/candidate.session.jsonl
+```
+
+To compare multiple candidates against one baseline:
+
+```sh
+he determinism-report baseline.jsonl run2.jsonl run3.jsonl run4.jsonl
+```
+
+Useful flags:
+
+- `--min-hash-match-rate 99.9` (default)
+- `--require-identical-step-set`
+- `--json`
+
+For RFC-style acceptance checks over multiple runs (e.g. one baseline + 9 repeats):
+
+```sh
+he determinism-acceptance run1.jsonl run2.jsonl run3.jsonl run4.jsonl run5.jsonl \
+  run6.jsonl run7.jsonl run8.jsonl run9.jsonl run10.jsonl \
+  --min-hash-match-rate 99.9 \
+  --require-identical-step-set
+```
+
 ### Creating a new patch
 
 1. Go to the build dir:
@@ -173,4 +204,3 @@ Confused about quilt? Run ```man quilt``` to read more about its functionality.
 1. Ensure that patches and series are formatted correctly, e.g. no blank lines.
 1. Check the consistency of the series file: `he validate series`
 1. Use git to add changes and commit. Refer to recent commit history for an appropriate commit comment.
-
